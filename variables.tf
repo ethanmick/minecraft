@@ -14,7 +14,3 @@ variable "availability_zones" {
   description = "Availability Zones"
   default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
 }
-
-variable "my_ip" {
-  description = "My public IP address"
-}
