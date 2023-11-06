@@ -1,3 +1,8 @@
+variable "aws_region" {
+  description = "AWS Region"
+  default     = "us-east-1"
+}
+
 variable "public_subnet_cidrs" {
   type        = list(string)
   description = "Public Subnet CIDR values"
@@ -8,4 +13,8 @@ variable "availability_zones" {
   type        = list(string)
   description = "Availability Zones"
   default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
+}
+
+variable "my_ip" {
+  description = "My public IP address"
 }
