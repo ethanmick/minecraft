@@ -28,13 +28,56 @@ resource "aws_security_group" "minecraft_sg" {
   }
 }
 
+resource "aws_iam_role" "efs_access" {
+  name = "efs_access_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "efs_access_policy" {
+  name = "efs_access_policy"
+  role = aws_iam_role.efs_access.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:DescribeFileSystems",
+        ],
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "efs_access_profile" {
+  name = "efs_access_profile"
+  role = aws_iam_role.efs_access.name
+}
+
 resource "aws_instance" "minecraft_instance" {
-  ami                         = "ami-016485166ec7fa705"
+  ami                         = "ami-0840becec4971bb87"
   instance_type               = "t4g.large"
   subnet_id                   = aws_subnet.public_subnets[0].id
   vpc_security_group_ids      = [aws_security_group.minecraft_sg.id]
   associate_public_ip_address = true
-  key_name                    = "ethan_mick"
+  key_name                    = "Macbook Pro"
+  iam_instance_profile        = aws_iam_instance_profile.efs_access_profile.id
   tags = {
     Name       = "Minecraft v3"
     Autodeploy = "true"
@@ -42,15 +85,13 @@ resource "aws_instance" "minecraft_instance" {
 
   user_data = <<-EOF
               #!/bin/bash
-              apt-get update -y
-              apt-get install -y nfs-common
+              yum install -y amazon-efs-utils nfs-utils
               mkdir -p /mnt/efs
-              mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs
-              echo '${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0' >> /etc/fstab
+              mount -t efs ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs
+              echo ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs efs defaults,_netdev 0 0 >> /etc/fstab
               EOF
 }
 
-### EFS
 resource "aws_efs_file_system" "minecraft_efs" {
   creation_token = "minecraft-efs"
 
