@@ -34,7 +34,7 @@ resource "aws_instance" "minecraft_instance" {
   subnet_id                   = aws_subnet.public_subnets[0].id
   vpc_security_group_ids      = [aws_security_group.minecraft_sg.id]
   associate_public_ip_address = true
-  key_name                    = "ethan_mick"
+  key_name                    = "Macbook Pro"
   tags = {
     Name       = "Minecraft v3"
     Autodeploy = "true"
