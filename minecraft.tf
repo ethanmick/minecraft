@@ -1,4 +1,8 @@
 
+resource "aws_route53_zone" "minecraft_zone" {
+  name = var.domain
+}
+
 resource "aws_security_group" "minecraft_sg" {
   vpc_id = aws_vpc.minecraft_vpc.id
 
@@ -28,29 +32,65 @@ resource "aws_security_group" "minecraft_sg" {
   }
 }
 
-resource "aws_instance" "minecraft_instance" {
-  ami                         = "ami-016485166ec7fa705"
-  instance_type               = "t4g.large"
-  subnet_id                   = aws_subnet.public_subnets[0].id
-  vpc_security_group_ids      = [aws_security_group.minecraft_sg.id]
-  associate_public_ip_address = true
-  key_name                    = "Macbook Pro"
-  tags = {
-    Name       = "Minecraft v3"
-    Autodeploy = "true"
+
+resource "aws_launch_template" "minecraft_launch_template" {
+  name_prefix   = "minecraft-lt-"
+  image_id      = "ami-016485166ec7fa705"
+  instance_type = "t4g.large"
+  key_name      = "Macbook Pro"
+
+  network_interfaces {
+    subnet_id                   = aws_subnet.public_subnets[0].id
+    associate_public_ip_address = true
+    security_groups             = [aws_security_group.minecraft_sg.id]
   }
 
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update -y
-              apt-get install -y nfs-common
-              mkdir -p /mnt/efs
-              mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs
-              echo '${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0' >> /etc/fstab
-              EOF
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name       = "Minecraft v4"
+      Autodeploy = "true"
+    }
+  }
+
+  user_data = base64encode(<<EOF
+    #!/bin/bash
+    apt-get update -y
+    apt-get install -y nfs-common
+    mkdir -p /mnt/efs
+    mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs
+    echo '${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0' >> /etc/fstab
+EOF
+  )
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-### EFS
+resource "aws_autoscaling_group" "minecraft_asg" {
+  name                = "Minecraft ASG"
+  desired_capacity    = 0
+  max_size            = 1
+  min_size            = 0
+  vpc_zone_identifier = [aws_subnet.public_subnets[0].id]
+
+  launch_template {
+    id      = aws_launch_template.minecraft_launch_template.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "MinecraftServerASG"
+    propagate_at_launch = true
+  }
+
+  health_check_type         = "EC2"
+  health_check_grace_period = 300
+}
+
+### EFS ###
 resource "aws_efs_file_system" "minecraft_efs" {
   creation_token = "minecraft-efs"
 

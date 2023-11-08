@@ -14,3 +14,8 @@ variable "availability_zones" {
   description = "Availability Zones"
   default     = ["us-east-1a"]
 }
+
+variable "domain" {
+  description = "The domain you want to use for your Minecraft server"
+  type        = string
+}

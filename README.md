@@ -1,9 +1,39 @@
-```
-MY_IP=$(curl -s https://ipinfo.io/ip)
-export TF_VAR_my_ip=$MY_IP
+# Minecraft: On Demand
+
+Playing Minecraft with friends on a multiplayer server is a lot fun. It's more
+fun when you have control over the server and can add mods, customizations, and
+have a map that shows the world you have explored. This isn't possible on Realms, but is when you control your own server.
+
+Running a server that can play Minecraft can be expensive. But that's only if
+you leave it running all the time. You probably aren't playing all the time, so
+when you are done playing it would be perfect for the server to shut itself off.
+
+This project uses Terraform to create a Minecraft instance that auto-shuts off
+after 5 minutes of inactivity.
+
+## Usage
+
+You will need an AWS account to run this.
+
+```bash
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_REGION=aws_region #us-east-1, us-west-1, etc. Pick the region closest to you.
 
 terraform apply
 ```
+
+This will create the necessary foundation, but won't launch an instance. To do that, we have a Discord bot.
+
+```js
+/minecraft play
+```
+
+This will spin up the server and let you play.
+
+## Architecture
+
+### Discord Bot
 
 ## Setup
 
