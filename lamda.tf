@@ -1,19 +1,19 @@
 resource "null_resource" "install_dependencies" {
   provisioner "local-exec" {
-    command = "pip install -r ./lambdas/launch/requirements.txt -t ./lambdas/launch/"
+    command = "cd lambdas/launch && npm install && npm run build"
   }
 
   triggers = {
-    dependencies_versions = filemd5("./lambdas/launch/requirements.txt")
-    source_versions       = filemd5("./lambdas/launch/function.py")
+    dependencies_versions = filemd5("./lambdas/launch/package.json")
+    source_versions       = filemd5("./lambdas/launch/index.ts")
   }
 }
 
 resource "random_uuid" "lambda_src_hash" {
   keepers = {
     for filename in setunion(
-      fileset("./lambdas/launch", "function.py"),
-      fileset("./lambdas/launch", "requirements.txt")
+      fileset("./lambdas/launch", "package.json"),
+      fileset("./lambdas/launch", "index.ts")
     ) :
     filename => filemd5("./lambdas/launch/${filename}")
   }
@@ -21,10 +21,7 @@ resource "random_uuid" "lambda_src_hash" {
 
 data "archive_file" "lambda_source" {
   depends_on = [null_resource.install_dependencies]
-  excludes = [
-    "__pycache__",
-    "venv",
-  ]
+  excludes   = ["index.ts"]
 
   source_dir  = "./lambdas/launch"
   output_path = "${random_uuid.lambda_src_hash.result}.zip"
@@ -76,6 +73,11 @@ resource "aws_iam_policy" "minecraft_lambda_policy" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "basic_execution" {
+  role       = aws_iam_role.minecraft_launch_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 resource "aws_iam_role_policy_attachment" "minecraft_lambda_policy_attachment" {
   role       = aws_iam_role.minecraft_launch_lambda_role.name
   policy_arn = aws_iam_policy.minecraft_lambda_policy.arn
@@ -87,9 +89,10 @@ resource "aws_lambda_function" "launch_minecraft_lambda" {
   role             = aws_iam_role.minecraft_launch_lambda_role.arn
   filename         = data.archive_file.lambda_source.output_path
   source_code_hash = data.archive_file.lambda_source.output_base64sha256
+  timeout          = 60
 
-  handler = "function.handler"
-  runtime = "python3.10"
+  handler = "index.handler"
+  runtime = "nodejs18.x"
 
   environment {
     variables = {
@@ -135,7 +138,7 @@ resource "aws_lambda_permission" "api_gw_permission" {
   # The source_arn is constructed from the API Gateway deployment's execution ARN, which means
   # you need to have the deployment in place before you can grant the permission. This is handled by
   # using the depends_on attribute in this case.
-  source_arn = "${aws_api_gateway_rest_api.minecraft_api.execution_arn}/*/*/*"
+  source_arn = "${aws_api_gateway_rest_api.minecraft_api.execution_arn}/*"
 }
 
 resource "aws_api_gateway_deployment" "minecraft_deployment" {
