@@ -77,6 +77,7 @@ build {
       "sudo touch /var/log/minecraft_player_watchdog.log",
       "sudo mv watchdog.sh /opt/minecraft",
       "sudo mv cron_watchdog /etc/cron.d/watchdog",
+      "sudo chown root:root /etc/cron.d/watchdog",
       "echo Pulling Minecraft image",
       "sudo docker image pull itzg/minecraft-server"
     ]
