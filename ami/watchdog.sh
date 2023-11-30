@@ -17,13 +17,14 @@ update_log() {
 }
 
 # Check the number of players
-list=$(docker exec -i mc rcon-cli list 2>/dev/null | wc -l)
+output=$(docker exec -i efs-mc-1 rcon-cli list 2>/dev/null)
+count=$(echo $output | cut -d ' ' -f 3)
 if [ $? -ne 0 ]; then
     list=0
 fi
 
 # Update the log file
-update_log "$list"
+update_log "$count"
 
 if [ $(wc -l < "$log_file") -ge "$max_entries" ]; then
     if [ $(awk '{sum += $1} END {print sum}' "$log_file") -eq 0 ]; then
