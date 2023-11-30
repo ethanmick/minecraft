@@ -53,6 +53,10 @@ async function getIPAddressOfInstance(group: string) {
       })
     )
     if ((updatedGroup.AutoScalingGroups?.[0]?.Instances?.length || 0) < 1) {
+      console.log(
+        'Waiting for instance to spin up...',
+        updatedGroup.AutoScalingGroups
+      )
       await sleep(5000)
     }
   } while ((updatedGroup.AutoScalingGroups?.[0]?.Instances?.length || 0) < 1)
@@ -86,7 +90,7 @@ async function updateRoute53(ip: string) {
           ResourceRecordSet: {
             Name: recordSetName,
             Type: 'A',
-            TTL: 300,
+            TTL: 60,
             ResourceRecords: [{ Value: ip }],
           },
         },
@@ -149,17 +153,6 @@ export const handler: Handler<APIGatewayProxyEventV2> = async (
       body: JSON.stringify({ type: 1 }),
     }
   }
-
-  const res = await fetch(
-    `https://discord.com/api/v10/interactions/${body.id}/${body.token}/callback`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ type: 5 }),
-    }
-  )
 
   try {
     await main()

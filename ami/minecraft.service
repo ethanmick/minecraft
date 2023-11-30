@@ -1,0 +1,15 @@
+[Unit]
+Description=Minecraft Docker Service
+Requires=docker.service
+After=docker.service mnt-efs.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/bin/sleep 60
+ExecStart=/usr/bin/docker compose up -d -f /mnt/efs/docker-compose.yml
+ExecStop=/usr/bin/docker compose down -f /mnt/efs/docker-compose.yml
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

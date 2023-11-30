@@ -15,6 +15,24 @@ after 5 minutes of inactivity.
 
 You will need an AWS account to run this.
 
+This project has several parts. In essence, it's an EC2 instance that runs
+within an autoscaling group. The group scales up and down to start and stop
+the instance. The instance is a custom built Ubuntu image.
+
+### Packer
+
+Packer is used to build or update the AMI.
+
+```bash
+cd ami
+packer build ubuntu.pkr.hcl
+```
+
+This will build the AMI and host it in the account. This AMI is then used in the
+`minecraft.tf` file to run that image.
+
+### Terraform
+
 ```bash
 export AWS_ACCESS_KEY_ID=your_access_key
 export AWS_SECRET_ACCESS_KEY=your_secret_key
@@ -25,8 +43,8 @@ terraform apply
 
 This will create the necessary foundation, but won't launch an instance. To do that, we have a Discord bot.
 
-```js
-/minecraft play
+```
+/minecraft
 ```
 
 This will spin up the server and let you play.

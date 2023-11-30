@@ -32,12 +32,67 @@ resource "aws_security_group" "minecraft_sg" {
   }
 }
 
+resource "aws_iam_role" "minecraft_instance_role" {
+  name = "minecraft_instance_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_policy" "scale_down_policy" {
+  name        = "minecraft_scale_down_policy"
+  description = "A policy to scale down the autoscaling group"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:TerminateInstanceInAutoScalingGroup",
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "scale_down_policy_attachment" {
+  role       = aws_iam_role.minecraft_instance_role.name
+  policy_arn = aws_iam_policy.scale_down_policy.arn
+}
+
+resource "aws_iam_instance_profile" "instance_profile" {
+  name = "minecraft_instance_profile"
+  role = aws_iam_role.minecraft_instance_role.name
+}
 
 resource "aws_launch_template" "minecraft_launch_template" {
   name_prefix   = "minecraft-lt-"
-  image_id      = "ami-016485166ec7fa705"
+  image_id      = "ami-09774d1dab21dbc38"
   instance_type = "t4g.large"
   key_name      = "Macbook Pro"
+
+  # Add the following if you want to use spot instances.
+  # Careful, it's a cutthroat market out there!
+  # instance_market_options {
+  #   market_type = "spot"
+  # }
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.instance_profile.name
+  }
 
   network_interfaces {
     subnet_id                   = aws_subnet.public_subnets[0].id
@@ -54,12 +109,12 @@ resource "aws_launch_template" "minecraft_launch_template" {
   }
 
   user_data = base64encode(<<EOF
-    #!/bin/bash
-    apt-get update -y
-    apt-get install -y nfs-common
-    mkdir -p /mnt/efs
-    mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs
-    echo '${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0' >> /etc/fstab
+#!/bin/bash
+apt-get update -y
+apt-get install -y nfs-common
+mkdir -p /mnt/efs
+mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs
+echo '${aws_efs_file_system.minecraft_efs.id}.efs.${var.aws_region}.amazonaws.com:/ /mnt/efs nfs4 defaults,_netdev 0 0' >> /etc/fstab
 EOF
   )
 
