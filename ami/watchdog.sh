@@ -18,6 +18,11 @@ update_log() {
 
 # Check the number of players
 output=$(docker exec -i efs-mc-1 rcon-cli list 2>/dev/null)
+if [ -z "$output" ]; then
+    echo "Docker container not running."
+    exit 1
+fi
+
 count=$(echo $output | cut -d ' ' -f 3)
 if [ $? -ne 0 ]; then
     list=0
