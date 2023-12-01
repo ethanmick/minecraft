@@ -18,3 +18,16 @@ services:
         Abattoir
     volumes:
       - /mnt/efs/data:/data
+  bluemap:
+    image: ghcr.io/bluemap-minecraft/bluemap:latest
+    restart: always
+    command: -r -u -w
+    ports:
+      - '8100:8100'
+    volumes:
+      - '/mnt/efs/bluemap/config:/app/config'
+      - '/mnt/efs/data/world:/app/world'
+#      - '/mnt/efs/data/world_nether:/app/world_nether'
+#      - '/mnt/efs/world_the_end:/app/world_the_end'
+      - '/mnt/efs/bluemap/data:/app/data'
+      - '/mnt/efs/bluemap/web:/app/web'
