@@ -80,7 +80,7 @@ resource "aws_iam_instance_profile" "instance_profile" {
 
 resource "aws_launch_template" "minecraft_launch_template" {
   name_prefix   = "minecraft-lt-"
-  image_id      = "ami-03a1107d67ec0a28f"
+  image_id      = "ami-043e223fb1e6429b0"
   instance_type = "t4g.large"
   key_name      = "Macbook Pro"
 
